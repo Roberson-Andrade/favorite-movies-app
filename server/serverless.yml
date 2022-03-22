@@ -1,0 +1,56 @@
+service: server
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  region: sa-east-1
+  stage: ${opt:stage, 'dev'}
+  environment: 
+    TABLE_NAME: MoviesTable
+  iamRoleStatements:
+    - Effect: Allow
+      Action: 
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource:
+        - 'arn:aws:dynamodb:${aws:region}:${aws:accountId}:table/*'
+
+functions:
+  add:
+    handler: endpoints/add.add
+    events:
+      - http: 
+          path: movies
+          method: post
+  delete:
+    handler: endpoints/delete.delete
+    events:
+      - http: 
+          path: movies
+          method: delete
+
+resources:
+  Resources:
+    moviesTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.TABLE_NAME}
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+
+plugins:
+  - serverless-offline
+  - serverless-dynamodb-local
