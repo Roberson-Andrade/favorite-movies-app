@@ -1,35 +1,31 @@
 'use strict';
 
 const { DynamoDB } = require('aws-sdk');
+const response = require('../utils/response');
 const dynamoDB = new DynamoDB.DocumentClient();
 
 module.exports.delete = async (event) => {
-  const headers = {
-    'Content-Type': 'application/json'
-  }
-
   const { id } = JSON.parse(event.body) 
-  
+  const TableName = 'MoviesTable';
+
   const params = {
-    TableName: 'MoviesTable',
+    TableName,
     Key: {
       id
     }
   }
 
   try {
-    const addedMovie = await dynamoDB.delete(params).promise();
-    return {
-      body: JSON.stringify(addedMovie),
-      statusCode: 200,
-      headers
+    const existingMovie = await dynamoDB.get({ TableName, Key: { id }}).promise();
+    
+    if(!existingMovie.Item) {
+      return response(`The movie ${id} isn't in your list!`, 404)
     }
+
+    await dynamoDB.delete(params).promise();
+    return response(`The movie ${id} was removed!`, 200);
   }
   catch (error) {
-    return {
-      body: error.message,
-      statusCode: 500,
-      headers
-    }
+    return response(error.message, 500)
   }
 };

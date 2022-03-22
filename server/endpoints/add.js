@@ -1,17 +1,15 @@
 'use strict';
 
 const { DynamoDB } = require('aws-sdk');
+const response = require('../utils/response');
 const dynamoDB = new DynamoDB.DocumentClient();
 
 module.exports.add = async (event) => {
-  const headers = {
-    'Content-Type': 'application/json'
-  }
+  const { id, rating, listName} = JSON.parse(event.body);
+  const TableName = 'MoviesTable';
 
-  const { id, rating, listName} = JSON.parse(event.body) 
-  
   const params = {
-    TableName: 'MoviesTable',
+    TableName,
     Item: {
       id,
       rating,
@@ -20,18 +18,16 @@ module.exports.add = async (event) => {
   }
 
   try {
-    const addedMovie = await dynamoDB.put(params).promise();
-    return {
-      body: JSON.stringify(addedMovie),
-      statusCode: 201,
-      headers
+    const existingMovie = await dynamoDB.get({ TableName, Key: { id }}).promise();
+    
+    if(existingMovie.Item) {
+      return response(`The movie ${id} is already in your list!`, 400)
     }
+
+    await dynamoDB.put(params).promise();
+    return response(`Movie ${id} added!`, 201)
   }
   catch (error) {
-    return {
-      body: error.message,
-      statusCode: 500,
-      headers
-    }
+    return response(error.message, 500)
   }
 };
