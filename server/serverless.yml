@@ -34,6 +34,12 @@ functions:
       - http: 
           path: movies
           method: delete
+  get:
+    handler: endpoints/getAll.getAll
+    events:
+      - http:
+          path: movies
+          method: get
 
 resources:
   Resources:
